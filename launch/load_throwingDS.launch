@@ -1,0 +1,51 @@
+<?xml version="1.0" ?>
+<launch>
+ 
+ # You can fill in here the name of your DS or pass it through the command line or another launch file!
+ <arg name="DS_param_name"          default="ds_param"/>
+
+ <arg name="prior_file_name"  default="toss_prior"/>
+ <arg name="mu_file_name"     default="toss_mu"/>
+ <arg name="sigma_file_name"  default="toss_sigma"/>
+ <!-- <arg name="ds_type"          default="1"/> -->
+
+
+
+# Example Options:
+  - 0: analytic first order
+  - 1: analytic second order
+  - 2: learned first order
+  - 3: learned second order
+
+
+# Things to Know!
+# input_topic name should contain          -- geometry_msgs::Pose
+# output_topic_name will write to          -- geometry_msgs::Twist
+# output_orientation_topic_name will write -- geometry_msgs::Quaternion
+<group ns="ds1">
+    <param name="input_topic_ds_model_path"         value="$(find throwing_ds_ros)/config/learned_DS/pre_toss/"/>
+    <param name="input_topic_desired_ee_pose"       value="/ds1/robot/desired/pose"/>
+    <param name="input_topic_desired_toss_velo"     value="/ds1/robot/desired_toss/velocity"/>
+    <param name="input_topic_retract_pose"          value="/ds1/robot/retract/pose"/>
+
+    <param name="input_topic_ee_pose"               value="/robot/ee/pose"/>
+    <param name="input_topic_ee_velo"               value="/robot/ee/velocity"/>
+    <param name="output_topic_ee_velo"              value="/ds1/desired/velocity"/>
+    <param name="output_topic_ee_accel"             value="/ds1/desired/acceleration"/>
+
+    <param name="ds_type"                           value="/1"/>
+
+    <param name="from_text_file"                    value="true"/>
+    <param name="prior_file_path"                   value="$(find throwing_ds_ros)/config/learned_DS/pre_toss/$(arg prior_file_name).txt"/>
+    <param name="mu_file_path"                      value="$(find throwing_ds_ros)/config/learned_DS/pre_toss/$(arg mu_file_name).txt"/>
+    <param name="sigma_file_path"                   value="$(find throwing_ds_ros)/config/learned_DS/pre_toss/$(arg sigma_file_name).txt"/>
+    <param name="sigma_file_path"                   value="$(find throwing_ds_ros)/config/learned_DS/pre_toss/$(arg sigma_file_name).txt"/>
+
+    <rosparam command="load" file="$(find throwing_ds_ros)/config/analytic_DS/$(arg DS_param_name).yml"/>
+    <node name="ds_node" pkg="throwing_ds_ros"  type="throwing_ds_node" output="screen"/>
+</group>
+
+# This node published the desired orientation at the target
+
+</launch>
+
