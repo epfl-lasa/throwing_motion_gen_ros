@@ -4,7 +4,7 @@ This package contains ds based motion generator for throwing task. The algorithm
 # Installation
 Go in the `src` directory of your catkin workspace and clone this package:
 ```sh
-git clone  https://github.com/epfl-lasa/iam_dual_arm_control.git
+git clone  https://github.com/epfl-lasa/throwing_motion_gen_ros.git
 ```
 # Dependencies
 The main dependencies are the following ones:
