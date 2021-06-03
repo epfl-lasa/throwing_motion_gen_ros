@@ -114,6 +114,7 @@ class throwingMotionGeneration
 		Eigen::Matrix3d 		Ko_[3];
 		Eigen::Matrix3d 		Do_[3];
 
+		bool is2ndOrder_;
 		// class of DS
 		throwingDS dsThrowing2;
 

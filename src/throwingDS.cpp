@@ -14,7 +14,7 @@ throwingDS::throwingDS(){
 		Do_[i] = 2.0 *sqrt(Ko_[i](0,0))*Eigen::MatrixXd::Identity(3,3);
 	}
 	//
-	rho_		 = 0.150;
+	rho_		 = 0.10;
 	range_norm_  = 0.03;
 	range_tang_  = 0.03;
 
@@ -26,7 +26,7 @@ throwingDS::throwingDS(){
 throwingDS::~throwingDS(){
 
 }
-bool throwingDS::init(double modulRegion[], Eigen::Matrix3d Kp[], Eigen::Matrix3d Dp[], Eigen::Matrix3d Ko[], Eigen::Matrix3d Do[]){
+bool throwingDS::init(double modulRegion[], Eigen::Matrix3d Kp[], Eigen::Matrix3d Dp[], Eigen::Matrix3d Ko[], Eigen::Matrix3d Do[], bool is2ndOrder){
 	
 	// initialize the gains
 	memcpy(Kp_, &Kp[0], 3 * sizeof *Kp); 
@@ -34,28 +34,13 @@ bool throwingDS::init(double modulRegion[], Eigen::Matrix3d Kp[], Eigen::Matrix3
 	memcpy(Ko_, &Ko[0], 3 * sizeof *Ko); 
 	memcpy(Do_, &Do[0], 3 * sizeof *Do); 
 
+	is2ndOrder_ = is2ndOrder;
+
 	rho_        = modulRegion[0];
 	range_norm_ = modulRegion[1];
 	range_tang_ = modulRegion[2];
 
 	// 
-	std::cout << " Stifness position " << 0 << " is \n" << Kp_[0] << std::endl;
-	std::cout << " Stifness position " << 1 << " is \n" << Kp_[1] << std::endl;
-	std::cout << " Stifness position " << 2 << " is \n" << Kp_[2] << std::endl;
-
-	std::cout << " Damping position " << 0 << " is \n" << Dp_[0] << std::endl;
-	std::cout << " Damping position " << 1 << " is \n" << Dp_[1] << std::endl;
-	std::cout << " Damping position " << 2 << " is \n" << Dp_[2] << std::endl;
-
-	std::cout << " Stifness position " << 0 << " is \n" << Ko_[0] << std::endl;
-	std::cout << " Stifness position " << 1 << " is \n" << Ko_[1] << std::endl;
-	std::cout << " Stifness position " << 2 << " is \n" << Ko_[2] << std::endl;
-
-	std::cout << " Damping position " << 0 << " is \n" << Do_[0] << std::endl;
-	std::cout << " Damping position " << 1 << " is \n" << Do_[1] << std::endl;
-	std::cout << " Damping position " << 2 << " is \n" << Do_[2] << std::endl;
-	
-
 	std::cout << " rho_ is \n" << rho_ << std::endl;
 	std::cout << " range_norm_ is \n" << range_norm_ << std::endl;
 	std::cout << " range_tang_ is \n" << range_tang_ << std::endl;
@@ -63,8 +48,8 @@ bool throwingDS::init(double modulRegion[], Eigen::Matrix3d Kp[], Eigen::Matrix3
 	return true;
 }
 
-void throwingDS::generate_throwing_motion2(Eigen::Matrix4d w_H_ce,  Vector6d Vee, Eigen::Matrix4d w_H_de, Eigen::Matrix4d w_H_re,  
-										 	Eigen::Matrix3d BasisQ, Eigen::Vector3d Vdtoss, Vector6d &Ad_ee)
+bool throwingDS::generate_throwing_motion(Eigen::Matrix4d w_H_ce,  Vector6d Vee, Eigen::Matrix4d w_H_de, Eigen::Matrix4d w_H_re,  
+										 		Eigen::Matrix3d BasisQ, Eigen::Vector3d Vdtoss, Vector6d &V_ee_d, Vector6d &A_ee_d)
 {
 	// States and desired states
 	Eigen::Vector3d X 	  = w_H_ce.block<3,1>(0,3);
@@ -85,7 +70,7 @@ void throwingDS::generate_throwing_motion2(Eigen::Matrix4d w_H_ce,  Vector6d Vee
 	double dist2line    = Xqb.tail(2).norm();
 	double dist2end     = Xqe.head(1).norm();
 	
-	double a_proximity	= 0.5*(std::tanh(this->sw_proxim_* (this->rho_ - dist2reach)) + 1.0 ); 	   	// scalar function of 3D distance  to initial (pre-modulation) position of attractor
+	double a_proximity	= 0.5*(std::tanh(this->sw_proxim_* (this->rho_ - dist2reach)) + 1.0 ); 	   		// scalar function of 3D distance  to initial (pre-modulation) position of attractor
 	double a_normal   	= 0.5*(std::tanh(this->sw_norm_  * (this->range_norm_ - dist2line)) + 1.0 ); 	// scalar function of distance to the line of direction Vtoss and passing through the release position
 	double a_tangent  	= 0.5*(std::tanh(this->sw_tang_  * (this->range_tang_ - dist2end))  + 1.0 ); 	// scalar function of distance to the stopping position of the throwing task
 	double coupling     = exp(-0.5*dist2line/(2.0*range_norm_*range_norm_));
@@ -95,22 +80,60 @@ void throwingDS::generate_throwing_motion2(Eigen::Matrix4d w_H_ce,  Vector6d Vee
 
 	// state-dependent gain matrix
 	// ----------------------------
-	// Eigen::Vector3d Xstar = (1.0 - a_normal) * Xb + a_normal * (X + Km.inverse()*Dm*Xdot );
-	Eigen::Vector3d Xstar = (1.0 - a_normal) * Xb + a_normal * (X + Vdtoss - (Eigen::MatrixXd::Identity(3,3)-Kp_[TOSS].inverse()*Dp_[TOSS] )*Xdot );
-	// 
-	Eigen::Vector3d Areach_ee      = Dp_[REACH]*Xdot + Kp_[REACH]*(X - Xb); 						// DS for approaching the tossing position
-	Eigen::Vector3d Amodul_ee_norm = Dp_[TOSS]*Xdot  + Kp_[TOSS]*(X - Xb); 							// Modulated DS that aligned  the EE with the desired velocity
-	Eigen::Vector3d Amodul_ee_tang = Dp_[TOSS]*Xdot  + Kp_[TOSS]*(X - Xstar); 						//this->computeModulatedAcceleration(Km, Dm, X, Xdot, Xstar);
-	Eigen::Vector3d Aretrac_ee     = Dp_[RETRACT]*Xdot + Kp_[RETRACT]*(X - Xretr); 					// DS for retracting after the tossing position
+	Vector6d Out_motion = Eigen::VectorXd::Zero(6,1);
+	A_ee_d.setZero();
+	V_ee_d.setZero();
+	//
+	if(this->is2ndOrder_){
+		// Eigen::Vector3d Xstar = (1.0 - a_normal) * Xb + a_normal * (X + Km.inverse()*Dm*Xdot );
+		Eigen::Vector3d Xstar = (1.0 - a_normal) * Xb + a_normal * (X + Vdtoss - (Eigen::MatrixXd::Identity(3,3)-Kp_[TOSS].inverse()*Dp_[TOSS] )*Xdot );
+		// 
+		Eigen::Vector3d Areach_ee      = Dp_[REACH]*Xdot + Kp_[REACH]*(X - Xb); 						// DS for approaching the tossing position
+		Eigen::Vector3d Amodul_ee_norm = Dp_[TOSS]*Xdot  + Kp_[TOSS]*(X - Xb); 							// Modulated DS that aligned  the EE with the desired velocity
+		Eigen::Vector3d Amodul_ee_tang = Dp_[TOSS]*Xdot  + Kp_[TOSS]*(X - Xstar); 						//this->computeModulatedAcceleration(Km, Dm, X, Xdot, Xstar);
+		Eigen::Vector3d Aretrac_ee     = Dp_[RETRACT]*Xdot + Kp_[RETRACT]*(X - Xretr); 					// DS for retracting after the tossing position
+
+		// get the modulated motion
+		Out_motion.head(3) = (1.0-a_tangent)*this->compute_modulated_motion(activation, BasisQ, Areach_ee, Amodul_ee_norm, Amodul_ee_tang) + a_tangent * Aretrac_ee;
+		// get angular motion
+		Out_motion.tail(3) = (1.0-a_tangent)*this->compute_angular_motion(coupling, w_H_ce, Omega, w_H_de, Ko_[REACH], Do_[REACH], this->is2ndOrder_) 
+							+   a_tangent   *this->compute_angular_motion(coupling, w_H_ce, Omega, w_H_re, Ko_[RETRACT], Do_[RETRACT], this->is2ndOrder_);
+
+		// out_motion: Acceleration
+		A_ee_d = Out_motion;
+		// reconstruct desired velocity from compute acceleration
+		V_ee_d.head(3) = -(1.0-a_tangent)*( ((1.0-activation)*Dp_[REACH].inverse() + activation * Dp_[TOSS].inverse())*A_ee_d.head(3) - Xdot) 
+						 - a_tangent * (Dp_[RETRACT].inverse()*Out_motion.head(3)-Xdot);
+		V_ee_d.tail(3) = -(1.0-a_tangent)*( ((1.0-activation)*Do_[REACH].inverse() + activation * Do_[TOSS].inverse())*A_ee_d.tail(3) - Xdot) 
+						 - a_tangent * (Do_[RETRACT].inverse()*Out_motion.tail(3)-Xdot);
+
+	}
+	else{
+		Eigen::Vector3d Xstar = (1.0 - a_normal) * Xb + a_normal * (X - Kp_[TOSS].inverse()*Vdtoss);
+		// 
+		Eigen::Vector3d Areach_ee      = Kp_[REACH]*(X - Xb); 						// DS for approaching the tossing position
+		Eigen::Vector3d Amodul_ee_norm = Kp_[TOSS]*(X - Xb); 						// Modulated DS that aligned  the EE with the desired velocity
+		Eigen::Vector3d Amodul_ee_tang = Kp_[TOSS]*(X - Xstar); 					// this->computeModulatedAcceleration(Km, Dm, X, Xdot, Xstar);
+		Eigen::Vector3d Aretrac_ee     = Kp_[RETRACT]*(X - Xretr); 					// DS for retracting after the tossing position
+
+		// get the modulated motion
+		Out_motion.head(3) = (1.0-a_tangent)*this->compute_modulated_motion(activation, BasisQ, Areach_ee, Amodul_ee_norm, Amodul_ee_tang) + a_tangent * Aretrac_ee;
+		// get angular motion
+		Out_motion.tail(3) = (1.0-a_tangent)*this->compute_angular_motion(coupling, w_H_ce, Omega, w_H_de, Ko_[REACH], Do_[REACH], this->is2ndOrder_) 
+							+   a_tangent   *this->compute_angular_motion(coupling, w_H_ce, Omega, w_H_re, Ko_[RETRACT], Do_[RETRACT], this->is2ndOrder_);
+
+		// out_motion: Velocity
+		V_ee_d = Out_motion;
+		// reconstruct the desired acceleration based on the computed velocity (critically damped with same settling time)
+		A_ee_d.head(3) = (1.0-a_tangent)*( ((1.0-activation)*Dp_[REACH] + activation * Dp_[TOSS])*Xdot) + a_tangent * (Dp_[RETRACT]*Xdot) + V_ee_d.head(3);
+		A_ee_d.tail(3) = (1.0-a_tangent)*( ((1.0-activation)*Do_[REACH] + activation * Do_[TOSS])*Xdot) + a_tangent * (Do_[RETRACT]*Xdot) + V_ee_d.tail(3);
+	}
+
+	return true;
 	
-	// get the modulated motion
-	Ad_ee.head(3) = (1.0-a_tangent)*this->compute_modulated_motion2(activation, BasisQ, Areach_ee, Amodul_ee_norm, Amodul_ee_tang) + a_tangent * Aretrac_ee;
-	// get angular motion
-	Ad_ee.tail(3) = (1.0-a_tangent)*this->compute_angular_motion2(coupling, w_H_ce, Omega, w_H_de, Ko_[REACH], Do_[REACH]) 
-					+   a_tangent  *this->compute_angular_motion2(coupling, w_H_ce, Omega, w_H_re, Ko_[RETRACT], Do_[RETRACT]);
 }
 
-Eigen::Vector3d throwingDS::compute_modulated_motion2(double activation, Eigen::Matrix3d BasisQ, Eigen::Vector3d Areach_ee, 
+Eigen::Vector3d throwingDS::compute_modulated_motion(double activation, Eigen::Matrix3d BasisQ, Eigen::Vector3d Areach_ee, 
 														Eigen::Vector3d Amodul_ee_norm, Eigen::Vector3d Amodul_ee_tang)
 {
 	//
@@ -135,7 +158,7 @@ Eigen::Vector3d throwingDS::compute_modulated_motion2(double activation, Eigen::
 }
 
 
-Eigen::Vector3d throwingDS::compute_angular_motion2(double coupling, Eigen::Matrix4d w_H_c, Eigen::Vector3d Omega, Eigen::Matrix4d w_H_d, Eigen::Matrix3d Ko, Eigen::Matrix3d Do){
+Eigen::Vector3d throwingDS::compute_angular_motion(double coupling, Eigen::Matrix4d w_H_c, Eigen::Vector3d Omega, Eigen::Matrix4d w_H_d, Eigen::Matrix3d Ko, Eigen::Matrix3d Do, bool is2ndOrder){
 
 	// Rotation motion
 	//----------------
@@ -148,6 +171,14 @@ Eigen::Vector3d throwingDS::compute_angular_motion2(double coupling, Eigen::Matr
 	// 3D Orientation Jacobian 
 	Eigen::Matrix3d jacMuTheta = Utils<double>::getMuThetaJacobian(d_R_c_t) * w_R_c.transpose();
 	// approaximation of the acceleration (neglecting  -jacMuTheta_dot * Omega)
-	return jacMuTheta.inverse() * ( Do*jacMuTheta*Omega + Ko * Utils<double>::getOrientationErrorCur2Des(d_R_c_t));
+	// return jacMuTheta.inverse() * ( Do*jacMuTheta*Omega + Ko * Utils<double>::getOrientationErrorCur2Des(d_R_c_t));
+
+	if(is2ndOrder){
+		// approaximation of the acceleration (neglecting  -jacMuTheta_dot * Omega)
+		return jacMuTheta.inverse() * ( Do*jacMuTheta*Omega + Ko * Utils<double>::getOrientationErrorCur2Des(d_R_c_t));
+	}
+	else{
+		return jacMuTheta.inverse() * (Ko * Utils<double>::getOrientationErrorCur2Des(d_R_c_t));
+	}
 
 }

@@ -64,13 +64,15 @@ class throwingDS
 		double sw_norm_;
 		double sw_tang_;
 
+		bool is2ndOrder_;
+
 
 	public:
 
 		throwingDS();
 		~throwingDS();
 
-		bool init(double modulRegion[], Eigen::Matrix3d Kp[], Eigen::Matrix3d Dp[], Eigen::Matrix3d Ko[], Eigen::Matrix3d Do[]);
+		bool init(double modulRegion[], Eigen::Matrix3d Kp[], Eigen::Matrix3d Dp[], Eigen::Matrix3d Ko[], Eigen::Matrix3d Do[], bool is2ndOrder);
 
 		/**
 		 * @brief parameters for the throwing motion generation (2nd order)
@@ -81,14 +83,14 @@ class throwingDS
 		 * @param Vdtoss desired throwing velocity of the end-effector (3x1)
 		 * @param Ad_ee  desired acceleration command of the end-effector
 		 */
-		void generate_throwing_motion2(Eigen::Matrix4d w_H_ce,  Vector6d Vee, Eigen::Matrix4d w_H_de, Eigen::Matrix4d w_H_re,  
-										 	Eigen::Matrix3d BasisQ, Eigen::Vector3d Vdtoss, Vector6d &Ad_ee);
+		bool generate_throwing_motion(Eigen::Matrix4d w_H_ce,  Vector6d Vee, Eigen::Matrix4d w_H_de, Eigen::Matrix4d w_H_re,  
+									 	Eigen::Matrix3d BasisQ, Eigen::Vector3d Vdtoss, Vector6d &V_ee_d, Vector6d &A_ee_d);
 
-		Eigen::Vector3d compute_modulated_motion2(double activation, Eigen::Matrix3d BasisQ, Eigen::Vector3d Areach_ee, 
+		Eigen::Vector3d compute_modulated_motion(double activation, Eigen::Matrix3d BasisQ, Eigen::Vector3d Areach_ee, 
 													Eigen::Vector3d Amodul_ee_norm, Eigen::Vector3d Amodul_ee_tang);
 
-		Eigen::Vector3d compute_angular_motion2(double coupling, Eigen::Matrix4d w_H_c, Eigen::Vector3d Omega, 
-													Eigen::Matrix4d w_H_d, Eigen::Matrix3d Ko, Eigen::Matrix3d Do);
+		Eigen::Vector3d compute_angular_motion(double coupling, Eigen::Matrix4d w_H_c, Eigen::Vector3d Omega, 
+													Eigen::Matrix4d w_H_d, Eigen::Matrix3d Ko, Eigen::Matrix3d Do, bool is2ndOrder);
 };
 
 #endif

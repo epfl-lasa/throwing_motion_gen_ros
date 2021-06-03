@@ -85,6 +85,7 @@ bool throwingMotionGeneration::init(){
 	modulRegion_[2] = 0.03;
 	//
 	toolOffsetFromEE_.setZero();
+	is2ndOrder_ = false;
 
 	
 	if (!InitializeROS()) {
@@ -147,25 +148,29 @@ bool throwingMotionGeneration::InitializeDS(){
 		//------------
 		case '0': {							// First order
 			getDsParamFromYmlFile();
+			is2ndOrder_ = false;
 		} break;
 
 		case '1': {							// Second order
 			getDsParamFromYmlFile();
+			is2ndOrder_ = true;
 		} break;
 
 		// Learned DS
 		//------------
 		case '2': {							// First order
 			getFirstOrderDsParamFromGMM(); 							// TO BE COMPLETED
+			is2ndOrder_ = false;
 		} break;
 
 		case '4': {							// Second order
 			getSecondOrderDsParamFromGMM(); 						// TO BE COMPLETED
+			is2ndOrder_ = true;
 		} break;
 	}
 
 	
-	dsThrowing2.init(modulRegion_, Kp_, Dp_, Ko_, Do_);
+	dsThrowing2.init(modulRegion_, Kp_, Dp_, Ko_, Do_, is2ndOrder_);
 
 	return true;
 }
@@ -173,7 +178,7 @@ void throwingMotionGeneration::generate_motion(){
 	//
 	BasisQ_ = createOrthonormalMatrixFromVector(vtoss_);
 
-	dsThrowing2.generate_throwing_motion2(w_H_ce_,  V_ee_, w_H_de_, w_H_re_, BasisQ_, vtoss_, A_ee_d_);
+	dsThrowing2.generate_throwing_motion(w_H_ce_,  V_ee_, w_H_de_, w_H_re_, BasisQ_, vtoss_, V_ee_d_, A_ee_d_);
 }
 
 void throwingMotionGeneration::UpdateEEPose(const geometry_msgs::Pose::ConstPtr& msg){
@@ -225,7 +230,15 @@ void throwingMotionGeneration::Publish_desired_motion(){
     msgDesiredAcceleration.angular.y = A_ee_d_(4);
     msgDesiredAcceleration.angular.z = A_ee_d_(5);
 
-	pub_desired_acceleration_.publish(msgDesiredAcceleration);
+    geometry_msgs::Twist msgDesiredTwist;
+    msgDesiredTwist.linear.x  = V_ee_d_(0);
+    msgDesiredTwist.linear.y  = V_ee_d_(1);
+    msgDesiredTwist.linear.z  = V_ee_d_(2);
+    msgDesiredTwist.angular.x = V_ee_d_(3);
+    msgDesiredTwist.angular.y = V_ee_d_(4);
+    msgDesiredTwist.angular.z = V_ee_d_(5);
+
+	pub_desired_twist_.publish(msgDesiredTwist);
 }
 
 
