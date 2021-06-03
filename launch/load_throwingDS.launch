@@ -23,19 +23,22 @@
 # output_topic_name will write to          -- geometry_msgs::Twist
 # output_orientation_topic_name will write -- geometry_msgs::Quaternion
 <group ns="ds1">
-    <param name="input_topic_ds_model_path"         value="$(find throwing_ds_ros)/config/learned_DS/pre_toss/"/>
+    
     <param name="input_topic_desired_ee_pose"       value="/ds1/robot/desired/pose"/>
     <param name="input_topic_desired_toss_velo"     value="/ds1/robot/desired_toss/velocity"/>
     <param name="input_topic_retract_pose"          value="/ds1/robot/retract/pose"/>
 
-    <param name="input_topic_ee_pose"               value="/robot/ee/pose"/>
-    <param name="input_topic_ee_velo"               value="/robot/ee/velocity"/>
+    <param name="input_topic_ee_pose"               value="/passive_control/robot/ee_pose"/>
+    <param name="input_topic_ee_velo"               value="/passive_control/robot/ee_velo"/>
+
     <param name="output_topic_ee_velo"              value="/ds1/desired/velocity"/>
     <param name="output_topic_ee_accel"             value="/ds1/desired/acceleration"/>
 
     <param name="ds_type"                           value="/1"/>
 
     <param name="from_text_file"                    value="true"/>
+
+    <param name="input_topic_ds_model_path"         value="$(find throwing_ds_ros)/config/learned_DS/pre_toss/"/>
     <param name="prior_file_path"                   value="$(find throwing_ds_ros)/config/learned_DS/pre_toss/$(arg prior_file_name).txt"/>
     <param name="mu_file_path"                      value="$(find throwing_ds_ros)/config/learned_DS/pre_toss/$(arg mu_file_name).txt"/>
     <param name="sigma_file_path"                   value="$(find throwing_ds_ros)/config/learned_DS/pre_toss/$(arg sigma_file_name).txt"/>

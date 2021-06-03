@@ -69,17 +69,17 @@ int main(int argc, char **argv)
 	}
 
 	//
-	throwingMotionGeneration ds_motion_generator( nh, 
-									frequency,
-	                                input_topic_ds_model_path,
-	                                input_topic_desired_ee_pose,
-	                                input_topic_desired_toss_velo,
-	                                input_topic_retract_pose,
-									input_topic_ee_pose,
-									input_topic_ee_velo,
-									output_topic_ee_velo,
-									output_topic_ee_accel,
-									dsType);
+	throwingMotionGeneration ds_motion_generator( 	nh, 
+													frequency,
+					                                input_topic_ds_model_path,
+					                                input_topic_desired_ee_pose,
+					                                input_topic_desired_toss_velo,
+					                                input_topic_retract_pose,
+													input_topic_ee_pose,
+													input_topic_ee_velo,
+													output_topic_ee_velo,
+													output_topic_ee_accel,
+													dsType);
 
 	if (!ds_motion_generator.init()) {
 		return -1;

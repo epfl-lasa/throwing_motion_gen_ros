@@ -118,7 +118,7 @@ void throwingMotionGeneration::run(){
 bool throwingMotionGeneration::InitializeROS(){
 
     sub_desired_ee_pose_	= 	nh_.subscribe( input_topic_desired_ee_pose_ , 1000, &throwingMotionGeneration::UpdateTargetPose, this, ros::TransportHints().reliable().tcpNoDelay());
-    sub_desired_toss_velo_  =  	nh_.subscribe( input_topic_ee_velo_ , 1000, &throwingMotionGeneration::UpdateTargetVelocity, this, ros::TransportHints().reliable().tcpNoDelay());
+    sub_desired_toss_velo_  =  	nh_.subscribe( input_topic_desired_toss_velo_ , 1000, &throwingMotionGeneration::UpdateTargetVelocity, this, ros::TransportHints().reliable().tcpNoDelay());
 	sub_retract_ee_pose_	= 	nh_.subscribe( input_topic_retract_ee_pose_ , 1000, &throwingMotionGeneration::UpdateRetractPose, this, ros::TransportHints().reliable().tcpNoDelay());
 	sub_ee_pose_ 			=	nh_.subscribe( input_topic_ee_pose_ , 1000, &throwingMotionGeneration::UpdateEEPose, this, ros::TransportHints().reliable().tcpNoDelay());
 	sub_ee_velo_ 			=  	nh_.subscribe( input_topic_ee_velo_ , 1000, &throwingMotionGeneration::UpdateEEVelocity, this, ros::TransportHints().reliable().tcpNoDelay());
