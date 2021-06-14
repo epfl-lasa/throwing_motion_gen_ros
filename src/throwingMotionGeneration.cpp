@@ -174,11 +174,18 @@ bool throwingMotionGeneration::InitializeDS(){
 
 	return true;
 }
-void throwingMotionGeneration::generate_motion(){
+void throwingMotionGeneration::generate_motion() {
 	//
 	BasisQ_ = createOrthonormalMatrixFromVector(vtoss_);
-
-	dsThrowing2.generate_throwing_motion(w_H_ce_,  V_ee_, w_H_de_, w_H_re_, BasisQ_, vtoss_, V_ee_d_, A_ee_d_);
+	bool release_flag;
+	Vector6d motion = dsThrowing2.generate_throwing_motion(w_H_ce_,  V_ee_, w_H_de_, w_H_re_, BasisQ_, vtoss_, release_flag);
+	
+	if(!is2ndOrder_) {
+		V_ee_d_ = motion;
+	}
+	else {
+		A_ee_d_ = motion;
+	}
 }
 
 void throwingMotionGeneration::UpdateEEPose(const geometry_msgs::Pose::ConstPtr& msg){
